@@ -37,13 +37,15 @@ def generate_ads(number, erlang_shape=2, erlang_mean=20, duration_low=2.5, durat
 
 
 class AdQueue:
-    def __init__(self):
+    def __init__(self, hours, percent):
+        self.hours = hours
+        self.percent = percent
         self.breaks = []
         self.ads = []
 
     def create_breaks(self, num_breaks):
-        total_duration = 16 * 60
-        break_duration = (1.6 * 60) / num_breaks
+        total_duration = self.hours * 60
+        break_duration = (self.hours*self.percent * 60) / num_breaks
         interval_duration = (total_duration - (num_breaks * break_duration)) / (num_breaks + 1)
 
         self.breaks = [
@@ -140,7 +142,7 @@ class Simulation:
     def simulate(self):
         logging.info("Starting simulation.")
         ads = generate_ads(self.ads, self.erlang_shape, self.erlang_mean, self.duration_low, self.duration_high, self.seed)
-        queue = AdQueue()
+        queue = AdQueue(hours=self.speaking_time, percent=self.ads_percent)
         queue.create_breaks(self.num_breaks)
 
         for ad in ads:
