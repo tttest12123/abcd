@@ -76,8 +76,8 @@ if st.button("Run Simulation"):
                     # Append results
                     results.append({
                         "Run": run_number,
-                        "Total Profit": 0 if total_profit < 0 else total_profit,
-                        "DPP": 'no' if total_profit < 0 else yrs,
+                        "Total Profit": 'less then 0' if total_profit < 0 else total_profit,
+                        "DPP": 'not profitable' if total_profit < 0 else yrs,
                         "Number of Breaks": num_breaks,
                         "Price per Min": row1["price_per_min"],
                         "Cost per Min": row1["cost_per_min"],
