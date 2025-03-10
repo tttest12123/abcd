@@ -3,7 +3,7 @@ import logging
 
 
 class AdvertisementGenerator:
-    def __init__(self, seed=42):
+    def __init__(self, seed=None):
         self.random = np.random.default_rng(seed)
 
     def erlang_interarrival(self, shape, mean, size=1):
@@ -24,8 +24,8 @@ class Advertisement:
         return f'Ad {self.index} at {self.arrival_time}; Duration: {self.duration}'
 
 
-def generate_ads(number, erlang_shape=2, erlang_mean=20, duration_low=2.5, duration_high=3.5):
-    generator = AdvertisementGenerator()
+def generate_ads(number, erlang_shape=2, erlang_mean=20, duration_low=2.5, duration_high=3.5, seed=None):
+    generator = AdvertisementGenerator(seed)
     interarrival_times = generator.erlang_interarrival(shape=erlang_shape, mean=erlang_mean, size=number)
     ad_durations = generator.uniform_duration(low=duration_low, high=duration_high, size=number)
 
@@ -122,6 +122,7 @@ class Simulation:
 
 
         self.initial_cost = 1_000_000
+        self.seed =  None
 
 
     def run(self):
@@ -134,7 +135,7 @@ class Simulation:
 
     def simulate(self):
         logging.info("Starting simulation.")
-        ads = generate_ads(self.ads, self.erlang_shape, self.erlang_mean, self.duration_low, self.duration_high)
+        ads = generate_ads(self.ads, self.erlang_shape, self.erlang_mean, self.duration_low, self.duration_high, self.seed)
         queue = AdQueue()
         queue.create_breaks(self.num_breaks)
 
