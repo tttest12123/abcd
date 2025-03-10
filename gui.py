@@ -49,7 +49,6 @@ edited_df_3 = st.data_editor(st.session_state.table_data_3, num_rows="dynamic")
 if st.button("Run Simulation"):
     results = []
     run_number = 0  # Initialize the run number
-
     for _, row1 in edited_df_1.iterrows():
         for _, row2 in edited_df_2.iterrows():
             for _, row3 in edited_df_3.iterrows():
@@ -128,6 +127,8 @@ if st.button("Run Simulation"):
     ax.set_title("Profit vs. Number of Breaks (Grouped by Unique Parameter Sets)")
     ax.legend(title="Run")
     st.pyplot(fig)
+
+    st.balloons()
 
     csv = results_df.to_csv(index=False).encode('utf-8')
     st.download_button(
