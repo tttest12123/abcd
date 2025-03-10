@@ -10,7 +10,8 @@ st.title("Course work | System modeling")
 st.subheader("A20 | Mariia Kovalenko")
 
 
-num_breaks_min, num_breaks_max = st.slider("Number of Breaks Range", min_value=1, max_value=10, value=(1, 3))
+num_breaks_min, num_breaks_max = st.slider("Number of Breaks Range", min_value=1, max_value=20, value=(1, 3))
+iters = st.number_input("Number of Iterations", min_value=1, step=1, max_value=200)
 
 if "table_data_1" not in st.session_state:
     st.session_state.table_data_1 = pd.DataFrame({
@@ -47,10 +48,14 @@ edited_df_3 = st.data_editor(st.session_state.table_data_3, num_rows="dynamic")
 
 if st.button("Run Simulation"):
     results = []
-    for num_breaks in range(num_breaks_min, num_breaks_max + 1):
-        for _, row1 in edited_df_1.iterrows():
-            for _, row2 in edited_df_2.iterrows():
-                for _, row3 in edited_df_3.iterrows():
+    run_number = 0  # Initialize the run number
+
+    for _, row1 in edited_df_1.iterrows():
+        for _, row2 in edited_df_2.iterrows():
+            for _, row3 in edited_df_3.iterrows():
+                run_number += 1
+                for num_breaks in range(num_breaks_min, num_breaks_max + 1):  # Loop through break options
+                    # Create simulation instance
                     simulation = Simulation(
                         num_breaks=num_breaks,
                         price_per_min=row1["price_per_min"],
@@ -64,9 +69,13 @@ if st.button("Run Simulation"):
                         late_addition_coefficient=float(row1["late_addition_coefficient"]),
                         is_fast_run=is_fast_run
                     )
-                    total_profit, yrs = simulation.run()
-                    results.append({
 
+                    # Run simulation
+                    total_profit, yrs = simulation.run(iters)
+
+                    # Append results
+                    results.append({
+                        "Run": run_number,
                         "Total Profit": 0 if total_profit < 0 else total_profit,
                         "DPP": 'no' if total_profit < 0 else yrs,
                         "Number of Breaks": num_breaks,
@@ -81,20 +90,20 @@ if st.button("Run Simulation"):
                         "Late Addition Coefficient": row1["late_addition_coefficient"]
                     })
 
+
     results_df = pd.DataFrame(results)
+    st.dataframe(results_df)
+
     st.write("### Simulation Output")
     st.info('DPP - Years to reach profit, if there is "no" then profit is less then zero in this case', icon="🤓")
 
 
-    group_cols = [col for col in results_df.columns if col not in ["Number of Breaks", "Total Profit", "DPP"]]
+    group_cols = [col for col in results_df.columns if col in ["Run"]]
 
     grouped_results = results_df.groupby(group_cols)
 
     results_df = results_df.copy()
-    results_df["Run"] = 0
 
-    for run_number, (_, group) in enumerate(grouped_results, start=1):
-        results_df.loc[group.index, "Run"] = run_number
 
     for run_number, run_df in results_df.groupby("Run"):
         st.write(f"#### Run {run_number}")

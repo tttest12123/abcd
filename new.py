@@ -1,5 +1,7 @@
 import numpy as np
 import logging
+import streamlit as st
+from numpy.ma.extras import average
 
 
 class AdvertisementGenerator:
@@ -122,14 +124,16 @@ class Simulation:
 
 
         self.initial_cost = 1_000_000
-        self.seed =  None
+        
+        self.seed = None if st.secrets["seed"] == 'random' else st.secrets['seed']
 
 
-    def run(self):
+
+    def run(self, iterations=1):
         if self.is_fast_run:
-            profit = self.simulate()*365
+            profit = average([self.simulate() * 365 for _ in range(iterations)])
         else:
-            profit = sum(self.simulate() for _ in range(365))
+            profit = average([sum(self.simulate() for _ in range(365)) for _ in range(iterations)])
         years_to_profit = (self.initial_cost // profit) + 1
         return profit, years_to_profit
 
