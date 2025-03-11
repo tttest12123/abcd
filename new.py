@@ -1,10 +1,11 @@
+from statistics import mean
+
 import numpy as np
 import logging
 import streamlit as st
 from numpy.ma.extras import average
 
-
-class AdvertisementGenerator:
+class Generator:
     def __init__(self, seed=None):
         self.random = np.random.default_rng(seed)
 
@@ -16,9 +17,41 @@ class AdvertisementGenerator:
         return self.random.uniform(low, high, size=size)
 
 
-class Advertisement:
-    def __init__(self, index, arrival_time, duration):
+class AdvertisementGenerator:
+    def __init__(self):
+        pass
+
+    def generate_ads(self, time, erlang_shape=2, erlang_mean=20, duration_low=2.5, duration_high=3.5, seed=None):
+        generator = Generator(seed)
+        max_time = time * 60
+        ads = []
+        current_time = 0
+
+        while True:
+            interarrival = generator.erlang_interarrival(erlang_shape, erlang_mean, 1)[0]
+            duration = generator.uniform_duration(duration_low, duration_high, 1)[0]
+            new_time = current_time + interarrival
+
+            if new_time + duration > max_time:
+                break
+
+            ads.append(Advertisement(len(ads), new_time, duration))
+            current_time = new_time
+
+        return ads
+
+
+class Element:
+    def __init__(self, index):
         self.index = index
+
+    def __str__(self):
+        return f'Element {self.index}'
+
+
+class Advertisement(Element):
+    def __init__(self, index, arrival_time, duration):
+        super().__init__(index)
         self.arrival_time = arrival_time
         self.duration = duration
 
@@ -26,22 +59,36 @@ class Advertisement:
         return f'Ad {self.index} at {self.arrival_time}; Duration: {self.duration}'
 
 
-def generate_ads(number, erlang_shape=2, erlang_mean=20, duration_low=2.5, duration_high=3.5, seed=None):
-    generator = AdvertisementGenerator(seed)
-    interarrival_times = generator.erlang_interarrival(shape=erlang_shape, mean=erlang_mean, size=number)
-    ad_durations = generator.uniform_duration(low=duration_low, high=duration_high, size=number)
-
-    arrival_times = np.insert(np.cumsum(interarrival_times), 0, 0)[:-1]
-    return [Advertisement(i, arrival_times[i], ad_durations[i]) for i in range(number)]
 
 
-
-class AdQueue:
+class Queue:
     def __init__(self, hours, percent):
         self.hours = hours
         self.percent = percent
         self.breaks = []
         self.ads = []
+        self.ads_not_ran = 1
+
+    def do_stats(self):
+        total_immediately_added = 0
+        total_not_immediately_added = 0
+        total_full_addition = 0
+        total_partial_addition = 0
+
+        for ad_break in self.breaks:
+            total_immediately_added += sum(1 for ad in ad_break.get('ads', []) if ad.get('immediately_added'))
+            total_not_immediately_added += sum(1 for ad in ad_break.get('ads', []) if not ad.get('immediately_added'))
+            total_full_addition += sum(1 for ad in ad_break.get('ads', []) if ad.get('full_addition'))
+            total_partial_addition += sum(1 for ad in ad_break.get('ads', []) if not ad.get('full_addition'))
+
+        return {
+            "not_added": self.ads_not_ran,
+            "immediately_added": total_immediately_added,
+            "not_immediately_added": total_not_immediately_added,
+            "full_addition": total_full_addition,
+            "partial_addition": total_partial_addition
+        }
+
 
     def create_breaks(self, num_breaks):
         total_duration = self.hours * 60
@@ -89,21 +136,15 @@ class AdQueue:
                         f"Ad {ad.index} placed in break starting at {ad_break['start']} for {time_to_add} minutes.")
                     return remaining_duration == time_to_add
 
+            else:
+                self.ads_not_ran += 1
+
         logging.info(f"Ad {ad.index} rejected due to lack of space.")
         return False
 
 
-def revenue(ad, partilally_addition_coeficiant, late_addition_coeficiant, price_per_min=300):
-    money = ad['duration'] * price_per_min
-    if not ad['full_addition']:
-        money *= partilally_addition_coeficiant
-    if not ad['immediately_added']:
-        money *= late_addition_coeficiant
-    return money
-
-
 class Simulation:
-    def __init__(self, num_breaks, price_per_min=300, cost_per_min=10, ads=57,
+    def __init__(self, num_breaks, price_per_min=300, cost_per_min=10,
                          speaking_time=16, ads_percent=0.1, erlang_shape=2, erlang_mean=20,
                          duration_low=2.5, duration_high=3.5,
                          partially_addition_coefficient=0.9, late_addition_coefficient=0.7,
@@ -113,7 +154,6 @@ class Simulation:
         self.num_breaks = num_breaks
         self.price_per_min = price_per_min
         self.cost_per_min = cost_per_min
-        self.ads = ads
         self.speaking_time = speaking_time
         self.ads_percent = ads_percent
         self.erlang_shape = erlang_shape
@@ -129,32 +169,65 @@ class Simulation:
         
         self.seed = None if st.secrets["seed"] == 'random' else st.secrets['seed']
 
-
-
     def run(self, iterations=1):
-        if self.is_fast_run:
-            profit = average([self.simulate() * 365 for _ in range(iterations)])
-        else:
-            profit = average([sum(self.simulate() for _ in range(365)) for _ in range(iterations)])
-        years_to_profit = (self.initial_cost // profit) + 1
-        return profit, years_to_profit
+        stats_keys = ["not_added", "immediately_added", "not_immediately_added", "full_addition", "partial_addition"]
+        total_stats = {key: [] for key in stats_keys}
+        profits = []
+
+        for _ in range(iterations):
+            if self.is_fast_run:
+                daily_profit, stats = self.simulate()
+                yearly_profit = daily_profit * 365
+                yearly_stats = {key: stats[key] * 365 for key in stats_keys}
+            else:
+                daily_profits = []
+                yearly_stats = {key: 0 for key in stats_keys}
+
+                for _ in range(365):
+                    daily_profit, stats = self.simulate()
+                    daily_profits.append(daily_profit)
+
+                    for key in stats_keys:
+                        yearly_stats[key] += stats[key]
+
+                yearly_profit = sum(daily_profits)
+
+            profits.append(yearly_profit)
+            for key in stats_keys:
+                total_stats[key].append(yearly_stats[key])
+
+        avg_profit = mean(profits)
+        avg_stats = {key: mean(values) for key, values in total_stats.items()}
+        years_to_profit = (self.initial_cost // avg_profit) + 1 if avg_profit > 0 else float('inf')
+
+        return avg_profit, years_to_profit, avg_stats
 
     def simulate(self):
         logging.info("Starting simulation.")
-        ads = generate_ads(self.ads, self.erlang_shape, self.erlang_mean, self.duration_low, self.duration_high, self.seed)
-        queue = AdQueue(hours=self.speaking_time, percent=self.ads_percent)
+        ads = AdvertisementGenerator().generate_ads(self.speaking_time, self.erlang_shape, self.erlang_mean, self.duration_low, self.duration_high, self.seed)
+        queue = Queue(hours=self.speaking_time, percent=self.ads_percent)
         queue.create_breaks(self.num_breaks)
 
         for ad in ads:
             queue.add_ad(ad)
 
-        total_revenue = sum(revenue(ad, self.partially_addition_coefficient, self.late_addition_coefficient, self.price_per_min) for ad_break in queue.breaks for ad in ad_break['ads'])
+        total_revenue = sum(self.revenue(ad) for ad_break in queue.breaks for ad in ad_break['ads'])
         total_ad_time = sum(ad['duration'] for ad_break in queue.breaks for ad in ad_break['ads'])
         daily_costs = self.speaking_time*60 * self.cost_per_min
 
         daily_profit = total_revenue - daily_costs
         logging.info(f"Daily Profit: {daily_profit}")
-        return daily_profit
+
+        stats = queue.do_stats()
+        return daily_profit, stats
+
+    def revenue(self, ad):
+        money = ad['duration'] * self.price_per_min
+        if not ad['full_addition']:
+            money *= self.partially_addition_coefficient
+        if not ad['immediately_added']:
+            money *= self.late_addition_coefficient
+        return money
 
 
 def main():
@@ -164,12 +237,12 @@ def main():
     max_profit, best_breaks, years = 0, 0, 0
 
     for breaks in range(1, 10):
-        simulation = Simulation(num_breaks=breaks, price_per_min=300, cost_per_min=20, ads=60,
+        simulation = Simulation(num_breaks=breaks, price_per_min=300, cost_per_min=20,
                                 speaking_time=16, ads_percent=0.10, erlang_shape=2,
                                 erlang_mean=20, duration_low=2.5, duration_high=3.5,
                                 partially_addition_coefficient=0.9, late_addition_coefficient=0.7,
                                 is_fast_run=True)
-        total_profit, yrs = simulation.run()
+        total_profit, yrs, avg_stats = simulation.run()
         if total_profit > max_profit:
             max_profit, best_breaks, years = total_profit, breaks, yrs
 

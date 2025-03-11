@@ -70,7 +70,7 @@ if st.button("Run Simulation"):
                     )
 
                     # Run simulation
-                    total_profit, yrs = simulation.run(iters)
+                    total_profit, yrs, avg_stats = simulation.run(iters)
 
                     # Append results
                     results.append({
@@ -86,7 +86,12 @@ if st.button("Run Simulation"):
                         "Duration Low": row3["duration_low"],
                         "Duration High": row3["duration_high"],
                         "Partial Addition Coefficient": row1["partially_addition_coefficient"],
-                        "Late Addition Coefficient": row1["late_addition_coefficient"]
+                        "Late Addition Coefficient": row1["late_addition_coefficient"],
+                        'Not played ads': avg_stats['not_added'],
+                        'Immediately added': avg_stats['immediately_added'],
+                        'Waited in queue': avg_stats['not_immediately_added'],
+                        'Full ad': avg_stats['full_addition'],
+                        'Partial ad': avg_stats['partial_addition']
                     })
 
 
@@ -109,6 +114,14 @@ if st.button("Run Simulation"):
 
         selected_column = ["DPP", "Total Profit"]
         df_styled = run_df.style.set_properties(subset=selected_column, **{'background-color': '#D3D3D3'})
+        stats_column_names = [
+            'Not played ads',
+            'Immediately added',
+            'Waited in queue',
+            'Full ad',
+            'Partial ad'
+        ]
+        df_styled = df_styled.set_properties(subset=stats_column_names, **{'background-color': '#D3D3DD'})
 
         st.dataframe(df_styled)
 
