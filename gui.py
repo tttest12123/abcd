@@ -47,6 +47,9 @@ st.write("Time parameters")
 edited_df_3 = st.data_editor(st.session_state.table_data_3, num_rows="dynamic")
 
 if st.button("Run Simulation"):
+    my_bar = st.progress(0, text='Progress')
+
+
     results = []
     run_number = 0  # Initialize the run number
     for _, row1 in edited_df_1.iterrows():
@@ -93,7 +96,8 @@ if st.button("Run Simulation"):
                         'Full ad': avg_stats['full_addition'],
                         'Partial ad': avg_stats['partial_addition']
                     })
-                    st.write(f'Run: {run_number} done')
+                    total_iterations = len(edited_df_1) * len(edited_df_2) * len(edited_df_3)
+                    my_bar.progress(run_number/total_iterations, text='progress')
 
 
     results_df = pd.DataFrame(results)
