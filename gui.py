@@ -97,7 +97,7 @@ if st.button("Run Simulation"):
                         'Partial ad': avg_stats['partial_addition']
                     })
                     total_iterations = len(edited_df_1) * len(edited_df_2) * len(edited_df_3)
-                    my_bar.progress(run_number/total_iterations, text='progress')
+                    my_bar.progress(run_number/total_iterations, text=f'Run {run_number} of {total_iterations}')
 
 
     results_df = pd.DataFrame(results)
