@@ -28,13 +28,15 @@ class AdvertisementGenerator:
         current_time = 0
 
         while True:
+
             interarrival = generator.erlang_interarrival(erlang_shape, erlang_mean, 1)[0]
             duration = generator.uniform_duration(duration_low, duration_high, 1)[0]
             new_time = current_time + interarrival
 
             if new_time + duration > max_time:
                 break
-
+            logging.info(
+                f"Ad {len(ads)} arrived at {new_time} for {duration} minutes.")
             ads.append(Advertisement(len(ads), new_time, duration))
             current_time = new_time
 
@@ -106,16 +108,21 @@ class Queue:
             for i in range(num_breaks)
         ]
 
+        for b  in self.breaks:
+            logging.info(
+                f"break {b['start']}   {b['end']}")
+
     def add_ad(self, ad):
         remaining_duration = ad.duration
         ad_window_start = ad.arrival_time
-        ad_window_end = ad.arrival_time + 4 * 60
+        ad_window_end = ad.arrival_time + 4 * 60  # Ads must be placed within 4 hours
 
         for ad_break in self.breaks:
             proposed_start = ad_break['current_time']
-            proposed_end = proposed_start + remaining_duration
+            proposed_end = proposed_start + ad_break['duration']
 
-            if ad_window_start <= proposed_start < ad_window_end and ad_window_start < proposed_end <= ad_window_end:
+            # Check if ad fits within the available break window
+            if ad_window_start <= proposed_end and proposed_start < ad_window_end:
                 available_time = ad_break['duration'] - sum(a['duration'] for a in ad_break['ads'])
 
                 if available_time > 0:
@@ -133,12 +140,12 @@ class Queue:
                     self.ads.append(ad)
 
                     logging.info(
-                        f"Ad {ad.index} placed in break starting at {ad_break['start']} for {time_to_add} minutes.")
-                    return remaining_duration == time_to_add
+                        f"Ad {ad.index} placed in break starting at {proposed_start} for {time_to_add} minutes."
+                    )
+                    return time_to_add == remaining_duration
 
-            else:
-                self.ads_not_ran += 1
-
+        # If no valid placement is found
+        self.ads_not_ran += 1
         logging.info(f"Ad {ad.index} rejected due to lack of space.")
         return False
 
@@ -236,7 +243,7 @@ def main():
 
     max_profit, best_breaks, years = 0, 0, 0
 
-    for breaks in range(1, 10):
+    for breaks in range(1, 5):
         simulation = Simulation(num_breaks=breaks, price_per_min=300, cost_per_min=20,
                                 speaking_time=16, ads_percent=0.10, erlang_shape=2,
                                 erlang_mean=20, duration_low=2.5, duration_high=3.5,
