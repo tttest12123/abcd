@@ -93,6 +93,7 @@ if st.button("Run Simulation"):
                         'Full ad': avg_stats['full_addition'],
                         'Partial ad': avg_stats['partial_addition']
                     })
+                    st.write(f'Run: {run_number} done')
 
 
     results_df = pd.DataFrame(results)
