@@ -10,8 +10,8 @@ st.title("Course work | System modeling")
 st.subheader("A20 | Mariia Kovalenko")
 
 
-num_breaks_min, num_breaks_max = st.slider("Number of Breaks Range", min_value=3, max_value=15, value=(1, 3))
-iters = st.number_input("Number of Iterations", min_value=1, step=1, max_value=200)
+num_breaks_min, num_breaks_max = st.slider("Number of Breaks Range", min_value=3, max_value=15, value=(5, 8))
+iters = st.number_input("Number of Iterations", min_value=1, step=1, max_value=20)
 
 if "table_data_1" not in st.session_state:
     st.session_state.table_data_1 = pd.DataFrame({
