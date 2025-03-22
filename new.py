@@ -207,7 +207,7 @@ class Simulation:
 
         avg_profit = mean(profits)
         avg_stats = {key: mean(values) for key, values in total_stats.items()}
-        years_to_profit = round((self.initial_cost // avg_profit),1) if avg_profit > 0 else float('inf')
+        years_to_profit = round((self.initial_cost / avg_profit),1) if avg_profit > 0 else float('inf')
 
         return avg_profit/365, years_to_profit, avg_stats
 
