@@ -10,15 +10,15 @@ st.title("Course work | System modeling")
 st.subheader("A20 | Mariia Kovalenko")
 
 
-num_breaks_min, num_breaks_max = st.slider("Number of Breaks Range", min_value=1, max_value=20, value=(1, 3))
+num_breaks_min, num_breaks_max = st.slider("Number of Breaks Range", min_value=3, max_value=15, value=(1, 3))
 iters = st.number_input("Number of Iterations", min_value=1, step=1, max_value=200)
 
 if "table_data_1" not in st.session_state:
     st.session_state.table_data_1 = pd.DataFrame({
         "price_per_min": [300],
         "cost_per_min": [20],
-        "partially_addition_coefficient": [0.9],
-        "late_addition_coefficient": [0.7]
+        "partially_addition_coefficient": [0.7],
+        "late_addition_coefficient": [0.9]
     })
 
 if "table_data_2" not in st.session_state:

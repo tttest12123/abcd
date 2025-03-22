@@ -185,7 +185,7 @@ class Simulation:
             if self.is_fast_run:
                 daily_profit, stats = self.simulate()
                 yearly_profit = daily_profit * 365
-                yearly_stats = {key: stats[key] * 365 for key in stats_keys}
+                yearly_stats = {key: stats[key] for key in stats_keys}
             else:
                 daily_profits = []
                 yearly_stats = {key: 0 for key in stats_keys}
@@ -198,6 +198,8 @@ class Simulation:
                         yearly_stats[key] += stats[key]
 
                 yearly_profit = sum(daily_profits)
+                for key in stats_keys:
+                    yearly_stats[key] /= 365
 
             profits.append(yearly_profit)
             for key in stats_keys:
@@ -207,7 +209,7 @@ class Simulation:
         avg_stats = {key: mean(values) for key, values in total_stats.items()}
         years_to_profit = (self.initial_cost // avg_profit) + 1 if avg_profit > 0 else float('inf')
 
-        return avg_profit, years_to_profit, avg_stats
+        return avg_profit/365, years_to_profit, avg_stats
 
     def simulate(self):
         logging.info("Starting simulation.")
@@ -243,11 +245,11 @@ def main():
 
     max_profit, best_breaks, years = 0, 0, 0
 
-    for breaks in range(1, 5):
+    for breaks in range(3, 8):
         simulation = Simulation(num_breaks=breaks, price_per_min=300, cost_per_min=20,
                                 speaking_time=16, ads_percent=0.10, erlang_shape=2,
                                 erlang_mean=20, duration_low=2.5, duration_high=3.5,
-                                partially_addition_coefficient=0.9, late_addition_coefficient=0.7,
+                                partially_addition_coefficient=0.7, late_addition_coefficient=0.9,
                                 is_fast_run=True)
         total_profit, yrs, avg_stats = simulation.run()
         if total_profit > max_profit:
